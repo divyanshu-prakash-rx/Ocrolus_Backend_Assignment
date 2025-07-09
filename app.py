@@ -222,6 +222,22 @@ def recent_articles():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
+@app.route("/user/profile",methods=['GET'])
+@jwt_required()
+def user_details():
+    try:
+        current_user_id=get_jwt_identity()
+        user = User.query.get(current_user_id)
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        return jsonify({'user_id': user.id,
+                        'username':user.username,
+                        'joined_at':user.created_at}), 200
+        
+    except Exception as e:
+        return jsonify({"error":str(e)})
 
 
     
