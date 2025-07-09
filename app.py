@@ -119,13 +119,28 @@ def create_or_get_articles():
         
         current_user_id=get_jwt_identity()
         if request.method=='GET':
+            page=request.args.get('page',1,type=int)
+            per_page = request.args.get('per_page', 10, type=int)
+            per_page = min(per_page, 100) 
+
             query=Article.query.filter_by(user_id=int(current_user_id))
             query=query.order_by(Article.updated_at.desc())
-
-            articles= [article.to_dict() for article in query.all()]
+            
+            articles_pagination = query.paginate(
+            page=page, per_page=per_page, error_out=False
+            )
+            articles= [article.to_dict() for article in articles_pagination.items]
 
             return jsonify({
-                'articles': articles
+                'articles': articles,
+                'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': articles_pagination.total,
+                'pages': articles_pagination.pages,
+                'has_next': articles_pagination.has_next,
+                'has_prev': articles_pagination.has_prev
+            }
             })
         
         if request.method=='POST':
@@ -207,7 +222,7 @@ def recent_articles():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-     
+
 
     
 if __name__ == '__main__':
