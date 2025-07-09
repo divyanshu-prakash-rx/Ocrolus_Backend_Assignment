@@ -45,3 +45,24 @@ python app.py
 ```
 
 The application will be available at `http://localhost:5000`
+
+
+### Docker Setup
+
+```bash
+docker-compose up --build
+```
+
+
+
+## 📁 Project Structure
+
+```
+Backend_assignment_Ocrolus/
+├── app.py                 # Main Flask application
+├── requirements.txt       # Python dependencies
+├── .gitignore             # Git ignore file
+├── Dockerfile            # Docker configuration
+├── docker-compose.yml    # Docker Compose configuration
+└── README.md             # This file
+```
