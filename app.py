@@ -13,7 +13,7 @@ app.config['JWT_SECRET_KEY'] = 'Strong_secret_key'
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
-
+recently_viewed=defaultdict(list)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -45,6 +45,18 @@ class Article(db.Model):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
     
+def add_recently_viewed(user_id,article_id):
+    if user_id not in recently_viewed:
+        recently_viewed[user_id] = []
+
+    if article_id in recently_viewed[user_id]:
+        recently_viewed[user_id].remove(article_id)
+
+    recently_viewed[user_id].insert(0, article_id)
+    recently_viewed[user_id] = recently_viewed[user_id][:10]
+
+def recently_viewed_articles(user_id):
+    return recently_viewed.get(user_id,[])
 
 @app.route('/auth/register', methods=['POST'])
 def register():
@@ -145,6 +157,7 @@ def update_or_delete_articles(article_id):
             return jsonify({'message': "Article Not Found"}),404
         
         if request.method=='GET':
+            add_recently_viewed(current_user_id,article_id)
 
             return jsonify({'article': article.to_dict()}),200
         
@@ -171,6 +184,28 @@ def update_or_delete_articles(article_id):
         return jsonify({
             'error':str(e)
         }),400
+
+@app.route('/user/recently_viewed',methods=['GET'])
+@jwt_required()
+def recent_articles():
+    try:
+        current_user_id = get_jwt_identity()
+        
+        recent_article_ids = recently_viewed_articles(current_user_id)
+        
+        if not recent_article_ids:
+            return jsonify({'recently_viewed': []}), 200
+        
+        articles = []
+        for article_id in recent_article_ids:
+            article = Article.query.filter_by(id=article_id, user_id=current_user_id).first()
+            if article:
+                articles.append(article.to_dict())
+        
+        return jsonify({'recently_viewed': articles}), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
      
 
