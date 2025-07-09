@@ -7,14 +7,17 @@ from collections import defaultdict
 
 app = Flask(__name__)
 
+#Database Configuration and JWT configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cms.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'Strong_secret_key' 
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
+# Data structure to store recently viewed articles by a user
 recently_viewed=defaultdict(list)
 
+# Database Models
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -45,6 +48,7 @@ class Article(db.Model):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
     
+# Functions to fetch and add articles to recently_viewed
 def add_recently_viewed(user_id,article_id):
     if user_id not in recently_viewed:
         recently_viewed[user_id] = []
@@ -58,6 +62,7 @@ def add_recently_viewed(user_id,article_id):
 def recently_viewed_articles(user_id):
     return recently_viewed.get(user_id,[])
 
+# Authorization Routes
 @app.route('/auth/register', methods=['POST'])
 def register():
     try:
@@ -112,6 +117,7 @@ def login():
         return jsonify({'error': str(e)}),400
 
 
+# Get and Post Endpoints for articles
 @app.route('/articles',methods=['GET','POST'])
 @jwt_required()
 def create_or_get_articles():
@@ -119,6 +125,8 @@ def create_or_get_articles():
         
         current_user_id=get_jwt_identity()
         if request.method=='GET':
+
+            # Adding Pagination
             page=request.args.get('page',1,type=int)
             per_page = request.args.get('per_page', 10, type=int)
             per_page = min(per_page, 100) 
@@ -147,6 +155,7 @@ def create_or_get_articles():
             data=request.get_json()
             if not data or not data.get('content') or not data.get('title'):
                 return jsonify({'message':'Title or Content missing'}), 400
+            
             title=data['title']
             content=data['content']
             article=Article(
@@ -162,6 +171,7 @@ def create_or_get_articles():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
+# Update and Delete Routes for a particular Article
 @app.route('/articles/<int:article_id>', methods=['GET','PUT','DELETE'])
 @jwt_required()
 def update_or_delete_articles(article_id):
@@ -200,6 +210,7 @@ def update_or_delete_articles(article_id):
             'error':str(e)
         }),400
 
+# Route to get recently_viewed articles by a user
 @app.route('/user/recently_viewed',methods=['GET'])
 @jwt_required()
 def recent_articles():
@@ -222,6 +233,7 @@ def recent_articles():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
+# Endpoint to get user details
 @app.route("/user/profile",methods=['GET'])
 @jwt_required()
 def user_details():
