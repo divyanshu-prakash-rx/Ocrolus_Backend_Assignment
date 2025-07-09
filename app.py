@@ -38,7 +38,7 @@ class Article(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
-    # Funtion to return articles information as a diction
+    # Funtion to return articles information as a dictionary
     def to_dict(self):
         return {
             'id': self.id,
