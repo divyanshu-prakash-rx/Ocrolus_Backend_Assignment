@@ -100,12 +100,13 @@ def login():
         return jsonify({'error': str(e)}),400
 
 
-@app.route('/articles',methods=['GET','POST','PUT','DELETE'])
+@app.route('/articles',methods=['GET','POST'])
 @jwt_required()
-def articles():
+def create_or_get_articles():
     try:
+        
+        current_user_id=get_jwt_identity()
         if request.method=='GET':
-            current_user_id=get_jwt_identity()
             query=Article.query.filter_by(user_id=int(current_user_id))
             query=query.order_by(Article.updated_at.desc())
 
@@ -114,8 +115,8 @@ def articles():
             return jsonify({
                 'articles': articles
             })
+        
         if request.method=='POST':
-            current_user_id=get_jwt_identity()
             data=request.get_json()
             if not data or not data.get('content') or not data.get('title'):
                 return jsonify({'message':'Title or Content missing'}), 400
@@ -133,6 +134,44 @@ def articles():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+@app.route('/articles/<int:article_id>', methods=['GET','PUT','DELETE'])
+@jwt_required()
+def update_or_delete_articles(article_id):
+    try:
+        current_user_id=get_jwt_identity()
+        article= Article.query.filter_by(id=article_id, user_id=current_user_id).first()
+        if not article:
+            return jsonify({'message': "Article Not Found"}),404
+        
+        if request.method=='GET':
+
+            return jsonify({'article': article.to_dict()}),200
+        
+        if request.method=='PUT':
+
+            data=request.get_json()
+            if 'title' in data:
+                article.title = data['title']
+            if 'content' in data:
+                article.content = data['content']
+
+            article.updated_at = datetime.now(timezone.utc)
+
+            db.session.commit()
+
+            return jsonify({'message': "Article Updated Successfully"})
+        
+        if request.method=='DELETE':
+            db.session.delete(article)
+            db.session.commit()
+            return jsonify({'message':'Article Deleted Successfully'}),200
+
+    except Exception as e:
+        return jsonify({
+            'error':str(e)
+        }),400
+
      
 
     
