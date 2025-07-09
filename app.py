@@ -35,6 +35,16 @@ class Article(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'content': self.content,
+            'user_id': self.user_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
 
 @app.route('/auth/register', methods=['POST'])
 def register():
@@ -55,7 +65,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         
-        access_token=create_access_token(user.id)
+        access_token=create_access_token(identity=str(user.id))
 
         return jsonify({
             'message':"User registered successfully",
@@ -78,7 +88,7 @@ def login():
         if not user or not user.check_password(password):
             return jsonify({'message': 'Invalid Username or Password'}),401
         
-        access_token=create_access_token(user.id)
+        access_token=create_access_token(identity=str(user.id))
 
         return jsonify({
             'message':'login successful',
@@ -89,6 +99,41 @@ def login():
     except Exception as e:
         return jsonify({'error': str(e)}),400
 
+
+@app.route('/articles',methods=['GET','POST','PUT','DELETE'])
+@jwt_required()
+def articles():
+    try:
+        if request.method=='GET':
+            current_user_id=get_jwt_identity()
+            query=Article.query.filter_by(user_id=int(current_user_id))
+            query=query.order_by(Article.updated_at.desc())
+
+            articles= [article.to_dict() for article in query.all()]
+
+            return jsonify({
+                'articles': articles
+            })
+        if request.method=='POST':
+            current_user_id=get_jwt_identity()
+            data=request.get_json()
+            if not data or not data.get('content') or not data.get('title'):
+                return jsonify({'message':'Title or Content missing'}), 400
+            title=data['title']
+            content=data['content']
+            article=Article(
+                user_id=int(current_user_id),
+                title=title,
+                content=content
+            )
+            db.session.add(article)
+            db.session.commit()
+            return jsonify({'message':"Article Created"}), 201
+           
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+     
 
     
 if __name__ == '__main__':
