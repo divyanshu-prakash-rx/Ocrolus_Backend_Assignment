@@ -27,6 +27,7 @@ class Article(db.Model):
     content = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     def to_dict(self):
         return {
@@ -34,11 +35,14 @@ class Article(db.Model):
             'title': self.title,
             'content': self.content,
             'user_id': self.user_id,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
         }
     
-if __name__ == '__main__':
+
     
+if __name__ == '__main__':
+
     with app.app_context():
         db.create_all()
     app.run(debug=True)
