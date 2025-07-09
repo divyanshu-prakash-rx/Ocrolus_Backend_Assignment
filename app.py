@@ -7,8 +7,9 @@ from collections import defaultdict
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('sqlite:///cms.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cms.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = 'Strong_secret_key' 
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
@@ -39,7 +40,7 @@ class Article(db.Model):
 def register():
     try:
         data = request.get_json()
-        if not data or not data.get('username') or data.get('password'):
+        if not data or not data.get('username') or not data.get('password'):
             return jsonify({'message': "Username and Password required"}),404
         
         if User.query.filter_by(username=data['username']).first():
@@ -65,7 +66,7 @@ def register():
     except Exception as e:
         return jsonify({'error': str(e)}),400
     
-@app.route('auth/login',methods='POST')
+@app.route('/auth/login',methods=['POST'])
 def login():
     try:
         data=request.get_json()
@@ -73,7 +74,7 @@ def login():
             return jsonify({'message': "Username and Password required"})
         username=data['username']
         password=data['password']
-        user=User.query.filter_by(username=[username]).first()
+        user=User.query.filter_by(username=username).first()
         if not user or not user.check_password(password):
             return jsonify({'message': 'Invalid Username or Password'}),401
         
